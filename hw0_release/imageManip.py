@@ -16,6 +16,7 @@ def load(image_path):
     Returns:
         out: numpy array of shape(image_height, image_width, 3).
     """
+    "test change"
     out = None
 
     ### YOUR CODE HERE
