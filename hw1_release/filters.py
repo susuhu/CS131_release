@@ -118,7 +118,13 @@ def conv_faster(image, kernel):
     out = np.zeros((Hi, Wi))
 
     # YOUR CODE HERE
-    pass
+    image = zero_pad(image, Hk // 2, Wk // 2)
+    mat = np.zeros((Hi * Wi, Hk * Wk))
+    for i in range(Hi * Wi):
+        row = i // Wi
+        col = i % Wi
+        mat[i, :] = image[row : row + Hk, col : col + Wk].reshape(1, Hk * Wk)
+    out = np.sum(mat * kernel.reshape(1, Hk * Wk), axis=1).reshape(Hi, Wi)
     # END YOUR CODE
 
     return out
