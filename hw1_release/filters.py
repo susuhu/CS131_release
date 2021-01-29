@@ -28,17 +28,15 @@ def conv_nested(image, kernel):
     Hk, Wk = kernel.shape
     out = np.zeros((Hi, Wi))
 
-    ### YOUR CODE HERE
-    kernel = np.flip(kernel, 0)
-    kernel = np.flip(kernel, 1)
-    i = Hi - Hk + 1
-    j = Wi - Wk + 1
-    shiftx = (Hk - 1) // 2
-    shitfy = (Wk - 1) // 2
-    for x in range(i):
-        for y in range(j):
-            out[x + shiftx, y + shitfy] = np.sum(image[x : x + Hk, y : y + Wk] * kernel)
-    ### END YOUR CODE
+    # YOUR CODE HERE
+    for m in range(Hi - Hk + 1):
+        for n in range(Wi - Wk + 1):
+            sum = 0
+            for i in range(Hk):
+                for j in range(Wk):
+                    sum += image[m + Hk // 2 - i, n + Wk // 2 - j] * kernel[i, j]
+            out[m, n] = sum
+    # END YOUR CODE
 
     return out
 
@@ -65,7 +63,7 @@ def zero_pad(image, pad_height, pad_width):
     out = None
 
     # YOUR CODE HERE
-    out = np.zeros([H + 2 * pad_height, W + 2 * pad_width], dtype=float)
+    out = np.zeros([H + 2 * pad_height, W + 2 * pad_width])
     out[pad_height : pad_height + H, pad_width : pad_width + W] = image
     # END YOUR CODE
     return out
@@ -95,15 +93,12 @@ def conv_fast(image, kernel):
     out = np.zeros((Hi, Wi))
 
     # YOUR CODE HERE
+    image = zero_pad(image, Hk // 2, Wk // 2)
     kernel = np.flip(kernel, 0)
     kernel = np.flip(kernel, 1)
-    i = Hi - Hk + 1
-    j = Wi - Wk + 1
-    shiftx = (Hk - 1) // 2
-    shitfy = (Wk - 1) // 2
-    for x in range(i):
-        for y in range(j):
-            out[x + shiftx, y + shitfy] = np.sum(image[x : x + Hk, y : y + Wk] * kernel)
+    for m in range(Hi):
+        for n in range(Wi):
+            out[m, n] = np.sum(image[m : m + Hk, n : n + Wk] * kernel)
     # END YOUR CODE
 
     return out
@@ -144,7 +139,9 @@ def cross_correlation(f, g):
 
     out = None
     # YOUR CODE HERE
-    pass
+    g = np.flip(g, 0)
+    g = np.flip(g, 1)
+    out = conv_fast(f, g)
     # END YOUR CODE
 
     return out
@@ -167,7 +164,8 @@ def zero_mean_cross_correlation(f, g):
 
     out = None
     # YOUR CODE HERE
-    pass
+    g = g - np.mean(g)
+    out = cross_correlation(f, g)
     # END YOUR CODE
 
     return out
@@ -192,7 +190,16 @@ def normalized_cross_correlation(f, g):
 
     out = None
     # YOUR CODE HERE
-    pass
+    g = (g - np.mean(g)) / np.std(g)
+    Hi, Wi = f.shape
+    Hk, Wk = g.shape
+    f = zero_pad(f, Hk // 2, Wk // 2)
+    out = np.zeros((Hi, Wi))
+    for m in range(Hi):
+        for n in range(Wi):
+            f_patch = f[m : m + Hk, n : n + Wk]
+            f_pnorm = (f_patch - np.mean(f_patch)) / np.std(f_patch)
+            out[m, n] = np.sum(f_pnorm * g)
     # END YOUR CODE
 
     return out
