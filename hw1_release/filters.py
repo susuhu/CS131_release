@@ -29,13 +29,22 @@ def conv_nested(image, kernel):
     out = np.zeros((Hi, Wi))
 
     ### YOUR CODE HERE
-    pass
+    kernel = np.flip(kernel, 0)
+    kernel = np.flip(kernel, 1)
+    i = Hi - Hk + 1
+    j = Wi - Wk + 1
+    shiftx = (Hk - 1) // 2
+    shitfy = (Wk - 1) // 2
+    for x in range(i):
+        for y in range(j):
+            out[x + shiftx, y + shitfy] = np.sum(image[x : x + Hk, y : y + Wk] * kernel)
     ### END YOUR CODE
 
     return out
 
+
 def zero_pad(image, pad_height, pad_width):
-    """ Zero-pad an image.
+    """Zero-pad an image.
 
     Ex: a 1x1 image [[1]] with pad_height = 1, pad_width = 2 becomes:
 
@@ -55,14 +64,15 @@ def zero_pad(image, pad_height, pad_width):
     H, W = image.shape
     out = None
 
-    ### YOUR CODE HERE
-    pass
-    ### END YOUR CODE
+    # YOUR CODE HERE
+    out = np.zeros([H + 2 * pad_height, W + 2 * pad_width], dtype=float)
+    out[pad_height : pad_height + H, pad_width : pad_width + W] = image
+    # END YOUR CODE
     return out
 
 
 def conv_fast(image, kernel):
-    """ An efficient implementation of convolution filter.
+    """An efficient implementation of convolution filter.
 
     This function uses element-wise multiplication and np.sum()
     to efficiently compute weighted sum of neighborhood at each
@@ -84,11 +94,20 @@ def conv_fast(image, kernel):
     Hk, Wk = kernel.shape
     out = np.zeros((Hi, Wi))
 
-    ### YOUR CODE HERE
-    pass
-    ### END YOUR CODE
+    # YOUR CODE HERE
+    kernel = np.flip(kernel, 0)
+    kernel = np.flip(kernel, 1)
+    i = Hi - Hk + 1
+    j = Wi - Wk + 1
+    shiftx = (Hk - 1) // 2
+    shitfy = (Wk - 1) // 2
+    for x in range(i):
+        for y in range(j):
+            out[x + shiftx, y + shitfy] = np.sum(image[x : x + Hk, y : y + Wk] * kernel)
+    # END YOUR CODE
 
     return out
+
 
 def conv_faster(image, kernel):
     """
@@ -103,14 +122,15 @@ def conv_faster(image, kernel):
     Hk, Wk = kernel.shape
     out = np.zeros((Hi, Wi))
 
-    ### YOUR CODE HERE
+    # YOUR CODE HERE
     pass
-    ### END YOUR CODE
+    # END YOUR CODE
 
     return out
 
+
 def cross_correlation(f, g):
-    """ Cross-correlation of f and g.
+    """Cross-correlation of f and g.
 
     Hint: use the conv_fast function defined above.
 
@@ -123,14 +143,15 @@ def cross_correlation(f, g):
     """
 
     out = None
-    ### YOUR CODE HERE
+    # YOUR CODE HERE
     pass
-    ### END YOUR CODE
+    # END YOUR CODE
 
     return out
 
+
 def zero_mean_cross_correlation(f, g):
-    """ Zero-mean cross-correlation of f and g.
+    """Zero-mean cross-correlation of f and g.
 
     Subtract the mean of g from g so that its mean becomes zero.
 
@@ -145,19 +166,20 @@ def zero_mean_cross_correlation(f, g):
     """
 
     out = None
-    ### YOUR CODE HERE
+    # YOUR CODE HERE
     pass
-    ### END YOUR CODE
+    # END YOUR CODE
 
     return out
 
+
 def normalized_cross_correlation(f, g):
-    """ Normalized cross-correlation of f and g.
+    """Normalized cross-correlation of f and g.
 
     Normalize the subimage of f and the template g at each step
     before computing the weighted sum of the two.
 
-    Hint: you should look up useful numpy functions online for calculating 
+    Hint: you should look up useful numpy functions online for calculating
           the mean and standard deviation.
 
     Args:
@@ -169,8 +191,8 @@ def normalized_cross_correlation(f, g):
     """
 
     out = None
-    ### YOUR CODE HERE
+    # YOUR CODE HERE
     pass
-    ### END YOUR CODE
+    # END YOUR CODE
 
     return out

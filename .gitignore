@@ -1,3 +1,6 @@
 .idea
 test.py
 scicpt
+*.DS_Store
+__pycache__
+
