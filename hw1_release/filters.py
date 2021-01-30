@@ -118,6 +118,8 @@ def conv_faster(image, kernel):
     out = np.zeros((Hi, Wi))
 
     # YOUR CODE HERE
+    kernel = np.flip(kernel, 0)
+    kernel = np.flip(kernel, 1)
     image = zero_pad(image, Hk // 2, Wk // 2)
     mat = np.zeros((Hi * Wi, Hk * Wk))
     for i in range(Hi * Wi):
