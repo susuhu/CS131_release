@@ -44,7 +44,13 @@ def harris_corners(img, window_size=3, k=0.04):
     dy = filters.sobel_h(img)
 
     ### YOUR CODE HERE
-    pass
+    dxx = convolve(dx * dx, window)
+    dyy = convolve(dy * dy, window)
+    dxy = convolve(dx * dy, window)
+    for a in range(H):
+        for b in range(W):
+            M = np.array([[dxx[a, b], dxy[a, b]], [dxy[a, b], dyy[a, b]]])
+            response[a, b] = np.linalg.det(M) - k * (np.trace(M) ** 2)
     ### END YOUR CODE
 
     return response
@@ -70,7 +76,10 @@ def simple_descriptor(patch):
     """
     feature = []
     ### YOUR CODE HERE
-    pass
+    if not np.std(patch) == 0:
+        feature = ((patch - np.mean(patch)) / np.std(patch)).reshape(-1)
+    else:
+        feature = (patch - np.mean(patch)).reshape(-1)
     ### END YOUR CODE
     return feature
 
@@ -93,8 +102,10 @@ def describe_keypoints(image, keypoints, desc_func, patch_size=16):
 
     for i, kp in enumerate(keypoints):
         y, x = kp
-        patch = image[y-(patch_size//2):y+((patch_size+1)//2),
-                      x-(patch_size//2):x+((patch_size+1)//2)]
+        patch = image[
+            y - (patch_size // 2) : y + ((patch_size + 1) // 2),
+            x - (patch_size // 2) : x + ((patch_size + 1) // 2),
+        ]
         desc.append(desc_func(patch))
     return np.array(desc)
 
@@ -120,17 +131,22 @@ def match_descriptors(desc1, desc2, threshold=0.5):
     matches = []
 
     N = desc1.shape[0]
+    # distance of every point in desc1 to all points of desc2
     dists = cdist(desc1, desc2)
 
     ### YOUR CODE HERE
-    pass
+    for i in range(N):
+        # dists[i,:] is the distance of ith point in desc1 to all points of desc2
+        ds = dists[i, :]
+        if np.min(ds) / np.sort(ds)[1] <= threshold:
+            matches.append([i, np.argmin(ds)])
+    matches = np.array(matches)
     ### END YOUR CODE
-
     return matches
 
 
 def fit_affine_matrix(p1, p2):
-    """ Fit affine matrix such that p2 * H = p1
+    """Fit affine matrix such that p2 * H = p1
 
     Hint:
         You can use np.linalg.lstsq function to solve the problem.
@@ -143,18 +159,20 @@ def fit_affine_matrix(p1, p2):
         H: a matrix of shape (P, P) that transform p2 to p1.
     """
 
-    assert (p1.shape[0] == p2.shape[0]),\
-        'Different number of points in p1 and p2'
+    assert p1.shape[0] == p2.shape[0], "Different number of points in p1 and p2"
     p1 = pad(p1)
     p2 = pad(p2)
 
     ### YOUR CODE HERE
-    pass
+    # np.linalg.lstsq solve p2*H = P1
+    # np.linalg.lstsq returns (H(the transform matrix), residuals, rank, s(H's svd))
+    H = np.linalg.lstsq(p2, p1)
+    H = np.array(H[0])
     ### END YOUR CODE
 
     # Sometimes numerical issues cause least-squares to produce the last
     # column which is not exactly [0, 0, 1]
-    H[:,2] = np.array([0, 0, 1])
+    H[:, 2] = np.array([0, 0, 1])
     return H
 
 
@@ -185,24 +203,40 @@ def ransac(keypoints1, keypoints2, matches, n_iters=200, threshold=20):
     matches = matches.copy()
 
     N = matches.shape[0]
-    print(N)
     n_samples = int(N * 0.2)
 
-    matched1 = pad(keypoints1[matches[:,0]])
-    matched2 = pad(keypoints2[matches[:,1]])
+    matched1 = pad(keypoints1[matches[:, 0]])  # p1
+    matched2 = pad(keypoints2[matches[:, 1]])  # p2
 
     max_inliers = np.zeros(N)
     n_inliers = 0
 
     # RANSAC iteration start
     ### YOUR CODE HERE
-    pass
+    matched1_unpad = keypoints1[matches[:, 0]]
+    matched2_unpad = keypoints2[matches[:, 1]]
+
+    for i in range(n_iters):
+        sample = np.random.choice(N, n_samples)
+        p1 = matched1_unpad[sample]
+        p2 = matched2_unpad[sample]
+
+        H_temp = fit_affine_matrix(p1, p2)
+
+        dis = np.sqrt(((matched2.dot(H_temp) - matched1) ** 2).sum(1))
+        inliers = dis < threshold
+
+        curr_n_inliers = np.sum(inliers)
+        if curr_n_inliers > n_inliers:
+            n_inliers = curr_n_inliers
+            max_inliers = inliers
+
+    H = fit_affine_matrix(matched1_unpad[max_inliers], matched2_unpad[max_inliers])
     ### END YOUR CODE
-    print(H)
     return H, orig_matches[max_inliers]
 
 
-def hog_descriptor(patch, pixels_per_cell=(8,8)):
+def hog_descriptor(patch, pixels_per_cell=(8, 8)):
     """
     Generating hog descriptor by the following steps:
 
@@ -220,10 +254,12 @@ def hog_descriptor(patch, pixels_per_cell=(8,8)):
     Returns:
         block: 1D patch descriptor array of shape ((H*W*n_bins)/(M*N))
     """
-    assert (patch.shape[0] % pixels_per_cell[0] == 0),\
-                'Heights of patch and cell do not match'
-    assert (patch.shape[1] % pixels_per_cell[1] == 0),\
-                'Widths of patch and cell do not match'
+    assert (
+        patch.shape[0] % pixels_per_cell[0] == 0
+    ), "Heights of patch and cell do not match"
+    assert (
+        patch.shape[1] % pixels_per_cell[1] == 0
+    ), "Widths of patch and cell do not match"
 
     n_bins = 9
     degrees_per_bin = 180 // n_bins
@@ -232,7 +268,7 @@ def hog_descriptor(patch, pixels_per_cell=(8,8)):
     Gy = filters.sobel_h(patch)
 
     # Unsigned gradients
-    G = np.sqrt(Gx**2 + Gy**2)
+    G = np.sqrt(Gx ** 2 + Gy ** 2)
     theta = (np.arctan2(Gy, Gx) * 180 / np.pi) % 180
 
     # Group entries of G and theta into cells of shape pixels_per_cell, (M, N)
@@ -271,17 +307,19 @@ def linear_blend(img1_warped, img2_warped):
     Returns:
         merged: Merged image in output space
     """
-    out_H, out_W = img1_warped.shape # Height and width of output space
-    img1_mask = (img1_warped != 0)  # Mask == 1 inside the image
-    img2_mask = (img2_warped != 0)  # Mask == 1 inside the image
+    out_H, out_W = img1_warped.shape  # Height and width of output space
+    img1_mask = img1_warped != 0  # Mask == 1 inside the image
+    img2_mask = img2_warped != 0  # Mask == 1 inside the image
 
     # Find column of middle row where warped image 1 ends
     # This is where to end weight mask for warped image 1
-    right_margin = out_W - np.argmax(np.fliplr(img1_mask)[out_H//2, :].reshape(1, out_W), 1)[0]
+    right_margin = (
+        out_W - np.argmax(np.fliplr(img1_mask)[out_H // 2, :].reshape(1, out_W), 1)[0]
+    )
 
     # Find column of middle row where warped image 2 starts
     # This is where to start weight mask for warped image 2
-    left_margin = np.argmax(img2_mask[out_H//2, :].reshape(1, out_W), 1)[0]
+    left_margin = np.argmax(img2_mask[out_H // 2, :].reshape(1, out_W), 1)[0]
 
     ### YOUR CODE HERE
     pass
@@ -306,22 +344,22 @@ def stitch_multiple_images(imgs, desc_func=simple_descriptor, patch_size=5):
     # Detect keypoints in each image
     keypoints = []  # keypoints[i] corresponds to imgs[i]
     for img in imgs:
-        kypnts = corner_peaks(harris_corners(img, window_size=3),
-                              threshold_rel=0.05,
-                              exclude_border=8)
+        kypnts = corner_peaks(
+            harris_corners(img, window_size=3), threshold_rel=0.05, exclude_border=8
+        )
         keypoints.append(kypnts)
     # Describe keypoints
     descriptors = []  # descriptors[i] corresponds to keypoints[i]
     for i, kypnts in enumerate(keypoints):
-        desc = describe_keypoints(imgs[i], kypnts,
-                                  desc_func=desc_func,
-                                  patch_size=patch_size)
+        desc = describe_keypoints(
+            imgs[i], kypnts, desc_func=desc_func, patch_size=patch_size
+        )
         descriptors.append(desc)
     # Match keypoints in neighboring images
     matches = []  # matches[i] corresponds to matches between
-                  # descriptors[i] and descriptors[i+1]
-    for i in range(len(imgs)-1):
-        mtchs = match_descriptors(descriptors[i], descriptors[i+1], 0.7)
+    # descriptors[i] and descriptors[i+1]
+    for i in range(len(imgs) - 1):
+        mtchs = match_descriptors(descriptors[i], descriptors[i + 1], 0.7)
         matches.append(mtchs)
 
     ### YOUR CODE HERE
